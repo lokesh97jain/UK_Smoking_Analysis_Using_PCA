@@ -1,0 +1,245 @@
+---
+title: "UK Smoking Data"
+author: "Lokesh Surendra Jain"
+date: '2023-02-21'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+always_allow_html: true
+---
+
+In this exercise we will study UK Smoking Data (`smoking.R`, `smoking.rda` or `smoking.csv`):
+
+**Description**
+
+Survey data on smoking habits from the UK. The data set can be used for analyzing the demographic characteristics of smokers and types of tobacco consumed.
+
+**Format**
+
+A data frame with 1691 observations on the following 12 variables.
+
+`gender` - Gender with levels Female and Male.
+
+`age` - Age.
+
+`marital_status` - Marital status with levels Divorced, Married, Separated, Single and Widowed.
+
+`highest_qualification` - Highest education level with levels A Levels, Degree, GCSE/CSE, GCSE/O Level, Higher/Sub Degree, No Qualification, ONC/BTEC and Other/Sub Degree
+
+`nationality` - Nationality with levels British, English, Irish, Scottish, Welsh, Other, Refused and Unknown.
+
+`ethnicity` - Ethnicity with levels Asian, Black, Chinese, Mixed, White and Refused Unknown.
+
+`gross_income` - Gross income with levels Under 2,600, 2,600 to 5,200, 5,200 to 10,400, 10,400 to 15,600, 15,600 to 20,800, 20,800 to 28,600, 28,600 to 36,400, Above 36,400, Refused and Unknown.
+
+`region` - Region with levels London, Midlands & East Anglia, Scotland, South East, South West, The North and Wales
+
+`smoke` - Smoking status with levels No and Yes
+
+`amt_weekends` - Number of cigarettes smoked per day on weekends.
+
+`amt_weekdays` - Number of cigarettes smoked per day on weekdays.
+
+`type` - Type of cigarettes smoked with levels Packets, Hand-Rolled, Both/Mainly Packets and Both/Mainly Hand-Rolled
+
+Source National STEM Centre, Large Datasets from stats4schools, <https://www.stem.org.uk/resources/elibrary/resource/28452/large-datasets-stats4schools>.
+
+Obtained from <https://www.openintro.org/data/index.php?data=smoking>
+
+## Read and Clean the Data 
+
+```{r setup, results="hide", warning=F, message=F}
+# load libraries
+
+#install.packages("factoextra")
+#install.packages("FactoMineR")
+#install.packages("missMDA")
+
+if (!require("ggbiplot")) {
+  if (!require("devtools")) install.packages("devtools")
+  devtools::install_github("vqv/ggbiplot")
+}
+
+library(dplyr)
+library(FactoMineR)
+library(factoextra)
+
+library(ggplot2)
+library(ggbiplot)
+library(fastDummies)
+
+library(plotly)
+setwd("C:/Users/lokes/Downloads")
+
+```
+
+```{r}
+# Load data
+
+source("smoking.R")
+
+```
+
+Take a look into data
+
+```{r}
+# place holder
+smoking <- smoking
+smoking
+
+```
+
+There are many fields there so for this exercise lets only concentrate on smoke, gender, age, marital_status, highest_qualification and gross_income.
+
+Create new data.frame with only these columns.
+
+```{r}
+# place holder
+
+smoking_subset <- smoking[, c( "smoke", "gender", "age", "marital_status", "highest_qualification", "gross_income")]
+head(smoking_subset)
+```
+
+```{r}
+# place holder
+
+smoking_subset <- na.omit(smoking_subset)
+
+new_nrows <- nrow(smoking_subset)
+head(new_nrows)
+
+
+```
+
+```{r}
+# place holder
+
+smoking_subset$gender <- ifelse(smoking_subset$gender == "Male", 1, 0) # Female = 0, Male = 1
+smoking_subset$smoke <- ifelse(smoking_subset$smoke == "No", 0, 1) # No = 0, Yes = 1
+
+head(smoking_subset$gender)
+head(smoking_subset$smoke)
+
+smoking_subset$gross_income <- as.integer(as.factor(smoking_subset$gross_income))
+smoking_subset$highest_qualification <- as.integer(as.factor(smoking_subset$highest_qualification))
+
+head(smoking_subset$gross_income)
+head(smoking_subset$highest_qualification)
+
+smoking_subset <- smoking_subset %>%
+  mutate(
+    is_married = if_else(marital_status == "Married", 1, 0),
+    is_divorced = if_else(marital_status == "Divorced", 1, 0),
+    is_single = if_else(marital_status == "Single", 1, 0),
+    is_widowed = if_else(marital_status == "Widowed", 1, 0)
+  )%>%
+select(-marital_status)
+
+glimpse(smoking_subset)
+
+
+#any(is.na(smoking_subset))  # check any missing value
+ 
+```
+
+```{r}
+# place holder
+
+# smoking_subset <- subset(smoking_subset, select = -c(smoke))
+
+pca_result <- prcomp(smoking_subset[c(-1)], scale. = TRUE)
+
+summary(pca_result)
+
+ 
+```
+
+```{r}
+
+plot(pca_result, type = "line")
+# place holder
+```
+
+```{r echo=TRUE}
+
+ggbiplot(pca_result,scale=0,groups=as.factor(smoking_subset$smoke))
+# place holder
+```
+
+```{r}
+
+smoking_subset$smoke <- factor(
+  smoking_subset$smoke,
+  levels = c(1, 2, 3),
+  labels = c("never", "former", "current")
+)
+
+pca_result <- prcomp(smoking_subset[, -1], scale. = TRUE)
+
+library(ggbiplot)
+ggbiplot(
+  pca_result,
+  obs.scale = 1,
+  var.scale = 1,
+  groups = smoking_subset$smoke,
+  ellipse = TRUE,
+  circle = TRUE
+)
+
+
+
+# place holder
+```
+
+-   Convert a columns to proper format
+
+```{r}
+
+setwd("C:/Users/lokes/Downloads")
+ds_salary <- read.csv("ds_salaries.csv")
+ds_salary
+
+ds_salary_subset <- ds_salary[, c( "experience_level", "employment_type", "job_title", "company_size",'work_year')]
+head(ds_salary_subset)
+
+
+ds_salary_subset <- na.omit(ds_salary_subset)
+
+ds_salary_subset$employment_type <- ifelse(ds_salary_subset$employment_type == "FT", 1, 0)
+
+ds_salary_subset$company_size <- as.integer(as.factor(ds_salary_subset$company_size))
+
+
+ds_salary_subset$experience_level <- as.integer(as.factor(ds_salary_subset$experience_level))
+
+ds_salary_subset$job_title <- as.integer(as.factor(ds_salary_subset$job_title))
+
+```
+
+-   Perform PCA
+
+    ```{r}
+
+    head(sapply(ds_salary_subset, class))
+
+    pca_result_ds_salary <- prcomp(ds_salary_subset, scale. = TRUE)
+
+    summary(pca_result_ds_salary)
+
+    ```
+
+-   Make a skree plot
+
+    ```{r}
+
+    plot(pca_result_ds_salary, type = "line")
+    ```
+
+-   Make a biplot
+
+    ```{r}
+
+    ggbiplot(pca_result_ds_salary,scale=0,groups=as.factor(ds_salary_subset$company_size))
+
+    ```
